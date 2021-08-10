@@ -26,6 +26,7 @@ contract DSToken is DSMath, DSAuth {
     uint256                                           public  totalSupply;
     mapping (address => uint256)                      public  balanceOf;
     mapping (address => mapping (address => uint256)) public  allowance;
+    mapping (address => bool)                         public  approvedPools;
     string                                            public  symbol;
     uint8                                             public  decimals = 18; // standard token precision. override to customize
     string                                            public  name = "";     // Optional token name
@@ -41,6 +42,7 @@ contract DSToken is DSMath, DSAuth {
     event Burn(address indexed guy, uint wad);
     event Stop();
     event Start();
+    event PoolAdded(address pool);
 
     modifier stoppable {
         require(!stopped, "ds-stop-is-stopped");
@@ -109,6 +111,21 @@ contract DSToken is DSMath, DSAuth {
         emit Mint(guy, wad);
     }
 
+    function fuseMint(address pool, uint wad) public stoppable {
+        // optimistic mint
+        // see if it is a valid pool
+        require(approvedPools[pool], "Invalid pool");
+        // check that debt ceiling has not been exceeded
+        // check that utilization is not below target
+    }
+
+    function fuseBurn(address pool, uint wad) public stoppable {
+        // optimistic burn
+        // see if it is a valid pool
+        require(approvedPools[pool], "Invalid pool");
+        // check that utilization is not above target
+    }
+
     function burn(address guy, uint wad) public auth stoppable {
         if (guy != msg.sender && allowance[guy][msg.sender] != uint(-1)) {
             require(allowance[guy][msg.sender] >= wad, "ds-token-insufficient-approval");
@@ -134,5 +151,10 @@ contract DSToken is DSMath, DSAuth {
 
     function setName(string memory name_) public auth {
         name = name_;
+    }
+
+    function addPool(address pool) public auth stoppable {
+        approvedPools[pool] = true;
+        emit PoolAdded(pool);
     }
 }
